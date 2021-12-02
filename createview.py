@@ -54,10 +54,11 @@ if __name__ == '__main__':
                         default='.', help='Simulation folder')
     args = parser.parse_args()
     sim_dir = args.dir
-    os.chdir(args.dir)
     if os.path.isdir(sim_dir):
+        os.chdir(args.dir)
+        print(sim_dir)
         # entro nelle singole cartelle di output
-        os.chdir(sim_dir + "/output")
+        os.chdir("output")
         outputpath = os.getcwd()
         # scorro le sottocartelle di output
         for device_type in directory_list:
@@ -66,4 +67,4 @@ if __name__ == '__main__':
                 for filename in glob.glob("*.csv"):
                     logging.debug("processing " + device_type + "/" + filename)
                     OpenCsvAndCreateGraph(filename, os.getcwd())
-        os.chdir(outputpath)
+    os.chdir(outputpath)
