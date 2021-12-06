@@ -135,7 +135,25 @@ def generatePowerTimeSeries(file, startTime):
     # ~ plt.show()
     return xnew,ynew
 
+def createGraphWithAllDevicesPowers(listoflistx,listoflisty,nameOfFileWithAllPowers,id):
+    mypalette=Spectral11[0:len(listoflistx)]
+    legend_list.append(nameOfFileWithAllPowers+"_"+id+"_power")
+    data = {'xs': listoflistx,'ys': listoflisty,'labels': legend_list, 'color': mypalette}
+    source = ColumnDataSource(data)
 
+    p = figure(title=nameOfFileWithAllPowers + "_powers", x_range=xhh,sizing_mode="stretch_width", width=600, height=400)
+    p.multi_line('xs' ,'ys',line_width=2, line_color='color',legend_group='labels', source = source)
+    dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
+    paxis = int(len(xhh) / 30)
+    select_axis_key = list(range(0, len(xhh), paxis))
+    select_axis = {k: v for (k, v) in dicaxis.items() if k in select_axis_key}
+    mapp = """ var mapping = {}; return mapping[tick]; """
+    p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
+    p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
+    p.xaxis.major_label_orientation = pi / 4
+    output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'.html')
+    return p
+	
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -149,10 +167,10 @@ if __name__ == '__main__':
         startTime=os.getcwd() #prendo il percorso
         startTime=Path(startTime).stem #estrapolo solo il nome della cartella per capire di che giorno stiamo parlando
         startTime=startTime[0:8] #estraggo solo il giorno
-        print("Stampo startTime "+ startTime)
+        # ~ print("Stampo startTime "+ startTime)
         startTime=startTime.replace("_","-")
         startTime=datetime.datetime.strptime( startTime, "%m-%d-%y").timestamp() #converto la data in timeseries
-        print("Stampo startTime "+ str(startTime))
+        # ~ print("Stampo startTime "+ str(startTime))
         # entro nelle singole cartelle di output
         os.chdir("output")
         outputpath = os.getcwd()
@@ -172,8 +190,8 @@ if __name__ == '__main__':
                     index=Trova(filename,"_")
                     nameOfFileWithAllPowers=filename[:index]
                     id=filename[index+1:-4]
-                    print("Stampo nome file:" + nameOfFileWithAllPowers)
-                    print("Stampo id:" + str(id))
+                    # ~ print("Stampo nome file:" + nameOfFileWithAllPowers)
+                    # ~ print("Stampo id:" + str(id))
                     x,y=generatePowerTimeSeries(filename, startTime)
                     createGraph(x,y,filename,os.getcwd(),"power")  
                     listoflisty.append(y)
@@ -181,23 +199,8 @@ if __name__ == '__main__':
                     for j in x:
                         xhh.append(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(float(j))))
                     listoflistx.append(xhh)
-                    mypalette=Spectral11[0:len(listoflistx)]
-                    legend_list.append(nameOfFileWithAllPowers+"_"+id+"_power")
-        data = {'xs': listoflistx,'ys': listoflisty,'labels': legend_list, 'color': mypalette}
-        source = ColumnDataSource(data)
-
-        p = figure(title=nameOfFileWithAllPowers + "_powers", x_range=xhh,sizing_mode="stretch_width", width=600, height=400)
-        p.multi_line('xs' ,'ys',line_width=2, line_color='color',legend='labels', source = source)
-        dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
-        paxis = int(len(xhh) / 30)
-        select_axis_key = list(range(0, len(xhh), paxis))
-        select_axis = {k: v for (k, v) in dicaxis.items() if k in select_axis_key}
-        mapp = """ var mapping = {}; return mapping[tick]; """
-        p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
-        p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
-        p.xaxis.major_label_orientation = pi / 4
-        output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'.html')
-        os.chdir(outputpath)
+                    p=createGraphWithAllDevicesPowers(listoflistx,listoflisty,nameOfFileWithAllPowers,id)
+ 
 
         save(p)                    
     os.chdir(outputpath)
