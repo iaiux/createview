@@ -10,12 +10,12 @@ import glob
 import logging
 import argparse
 import matplotlib.pyplot as plt
-
+import pandas as pd
 from argparse import RawTextHelpFormatter
 from scipy.interpolate import interp1d
 from pathlib import Path
 from scipy import interpolate
-
+import json
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -23,23 +23,33 @@ logging.basicConfig(level=logging.DEBUG)
 directory_list = ["EV", "PV"]
 
 
-def createGraph(x,y,title,path,name):
-	xhh=[]
-	for j in x:
-		xhh.append(time.strftime("%d/%m/%Y %H:%M:%S",time.localtime(float(j-7200))))
-	outputname = title[:-4]
-	p= figure(title=outputname+"_"+name,x_range=xhh,
+
+def createGraph(x, y, title, path, name):
+    xhh = []
+    for j in x:
+        xhh.append(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(float(j))))
+    outputname = title[:-4]
+    p = figure(title=outputname + "_" + name, x_range=xhh,
                sizing_mode="stretch_width", width=600, height=400)
-	p.line(xhh, y, legend_label=outputname+"_"+name,line_width=2, color="navy", alpha=0.5)
-	p.xaxis.major_label_orientation = pi/4
-	p.legend.location = "top_right"
-	p.legend.click_policy = "mute"
-	#https://stackoverflow.com/questions/40638685/bokeh-select-xaxis-to-be-shown-in-plot-not-numbers
-	outputname = outputname+"_"+name+".html"
-	# ~ logging.debug("saving: " + path+"/" + outputname)
-	output_file(path+"/" + outputname)
-	save(p)
-	
+    p.line(xhh, y, legend_label=outputname + "_" + name, line_width=2, color="navy", alpha=0.5)
+
+    dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
+    paxis = int(len(xhh) / 50)
+    select_axis_key = list(range(0, len(xhh), paxis))
+    select_axis = {k: v for (k, v) in dicaxis.items() if k in select_axis_key}
+    mapp = """ var mapping = {};
+           return mapping[tick]; """
+    p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
+    p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
+
+    p.xaxis.major_label_orientation = pi / 4
+    p.legend.location = "top_right"
+    p.legend.click_policy = "mute"
+    outputname = outputname + "_" + name + ".html"
+    # ~ logging.debug("saving: " + path+"/" + outputname)
+    output_file(path + "/" + outputname)
+
+    save(p)
 
 
 def OpenCsvAndCreateGraph(filename, path):
