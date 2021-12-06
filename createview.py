@@ -1,5 +1,5 @@
 import os
-from bokeh.plotting import figure, output_file, save
+from bokeh.plotting import figure, output_file, save,show
 import datetime
 import time
 import csv
@@ -16,22 +16,28 @@ from scipy.interpolate import interp1d
 from pathlib import Path
 from scipy import interpolate
 import json
-
+from bokeh.palettes import Spectral11
 
 logging.basicConfig(level=logging.DEBUG)
 
 directory_list = ["EV", "PV"]
 
+def Trova(Stringa, Carattere):
+  Indice = 0
+  while Indice < len(Stringa):
+    if Stringa[Indice] == Carattere:
+      return Indice
+    Indice = Indice + 1
+  return -1
 
 
-def createGraph(x, y, title, path, name):
+def createGraph(x, y, title, path, id):
     xhh = []
     for j in x:
         xhh.append(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(float(j))))
     outputname = title[:-4]
-    p = figure(title=outputname + "_" + name, x_range=xhh,
-               sizing_mode="stretch_width", width=600, height=400)
-    p.line(xhh, y, legend_label=outputname + "_" + name, line_width=2, color="navy", alpha=0.5)
+    p = figure(title=outputname + "_" + id, x_range=xhh,sizing_mode="stretch_width", width=600, height=400)
+    p.line(xhh, y, legend_label=outputname + "_" + id, line_width=2, color="navy", alpha=0.5)
 
     dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
     paxis = int(len(xhh) / 50)
@@ -45,7 +51,7 @@ def createGraph(x, y, title, path, name):
     p.xaxis.major_label_orientation = pi / 4
     p.legend.location = "top_right"
     p.legend.click_policy = "mute"
-    outputname = outputname + "_" + name + ".html"
+    outputname = outputname + "_" + id + ".html"
     # ~ logging.debug("saving: " + path+"/" + outputname)
     output_file(path + "/" + outputname)
 
@@ -129,6 +135,8 @@ def generatePowerTimeSeries(file, startTime):
     # ~ plt.show()
     return xnew,ynew
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='This program converts timeseries to bokeh plots.', formatter_class=RawTextHelpFormatter)
@@ -149,6 +157,10 @@ if __name__ == '__main__':
         os.chdir("output")
         outputpath = os.getcwd()
         # scorro le sottocartelle di output
+        p=figure()
+        listoflistx=[]
+        listoflisty=[]
+        legend_list=[]
         for device_type in directory_list:
              if os.path.isdir(device_type):
                 os.chdir(device_type)
@@ -157,6 +169,35 @@ if __name__ == '__main__':
                     OpenCsvAndCreateGraph(filename, os.getcwd())
                     y=[]
                     x=[]
+                    index=Trova(filename,"_")
+                    nameOfFileWithAllPowers=filename[:index]
+                    id=filename[index+1:-4]
+                    print("Stampo nome file:" + nameOfFileWithAllPowers)
+                    print("Stampo id:" + str(id))
                     x,y=generatePowerTimeSeries(filename, startTime)
-                    createGraph(x,y,filename,os.getcwd(),"power")
+                    createGraph(x,y,filename,os.getcwd(),"power")  
+                    listoflisty.append(y)
+                    xhh = []
+                    for j in x:
+                        xhh.append(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(float(j))))
+                    listoflistx.append(xhh)
+                    mypalette=Spectral11[0:len(listoflistx)]
+                    legend_list.append(nameOfFileWithAllPowers+"_"+id+"_power")
+        data = {'xs': listoflistx,'ys': listoflisty,'labels': legend_list, 'color': mypalette}
+        source = ColumnDataSource(data)
+
+        p = figure(title=nameOfFileWithAllPowers + "_powers", x_range=xhh,sizing_mode="stretch_width", width=600, height=400)
+        p.multi_line('xs' ,'ys',line_width=2, line_color='color',legend='labels', source = source)
+        dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
+        paxis = int(len(xhh) / 30)
+        select_axis_key = list(range(0, len(xhh), paxis))
+        select_axis = {k: v for (k, v) in dicaxis.items() if k in select_axis_key}
+        mapp = """ var mapping = {}; return mapping[tick]; """
+        p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
+        p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
+        p.xaxis.major_label_orientation = pi / 4
+        output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'.html')
+        os.chdir(outputpath)
+
+        save(p)                    
     os.chdir(outputpath)
