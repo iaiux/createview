@@ -31,7 +31,7 @@ def Trova(Stringa, Carattere):
   return -1
 
 
-def createGraph(x, y, title, path, id):
+def createPowerGraph(x, y, title, path, id):
     xhh = []
     for j in x:
         xhh.append(time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(float(j))))
@@ -58,7 +58,7 @@ def createGraph(x, y, title, path, id):
     save(p)
 
 
-def OpenCsvAndCreateGraph(filename, path):
+def OpenCsvAndCreateEnergyGraph(filename, path):
     with open(os.path.join(path, filename), 'r') as csv_file:
         reader = csv.reader(csv_file, delimiter=',')
         x = []
@@ -184,7 +184,7 @@ if __name__ == '__main__':
                 os.chdir(device_type)
                 for filename in glob.glob("*.csv"):
                     logging.debug("processing " + device_type + "/" + filename)
-                    OpenCsvAndCreateGraph(filename, os.getcwd())
+                    OpenCsvAndCreateEnergyGraph(filename, os.getcwd())
                     y=[]
                     x=[]
                     index=Trova(filename,"_")
@@ -193,7 +193,7 @@ if __name__ == '__main__':
                     # ~ print("Stampo nome file:" + nameOfFileWithAllPowers)
                     # ~ print("Stampo id:" + str(id))
                     x,y=generatePowerTimeSeries(filename, startTime)
-                    createGraph(x,y,filename,os.getcwd(),"power")  
+                    createPowerGraph(x,y,filename,os.getcwd(),"power")  
                     listoflisty.append(y)
                     xhh = []
                     for j in x:
