@@ -151,7 +151,7 @@ def createGraphWithAllDevicesPowers(listoflistx,listoflisty,nameOfFileWithAllPow
     p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
     p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
     p.xaxis.major_label_orientation = pi / 4
-    output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'.html')
+    output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'_powers.html')
     return p
 	
 
