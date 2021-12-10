@@ -63,7 +63,6 @@ def OpenCsvAndCreateEnergyGraph(filename, path):
         reader = csv.reader(csv_file, delimiter=',')
         x = []
         y = []
-        z = []
         xhh = []
         for riga in reader:
             x.append(riga[0])
@@ -154,6 +153,41 @@ def createGraphWithAllDevicesPowers(listoflistx,listoflisty,nameOfFileWithAllPow
     output_file(os.getcwd() + "/" + nameOfFileWithAllPowers+'_powers.html')
     return p
 	
+def OpenCsvAndCreateConsAndProdGraph(filename,path,Day):
+    with open(os.path.join(path, filename), 'r') as csv_file:
+        reader = csv.reader(csv_file, delimiter=',')
+        x = []
+        y = []
+        xhh = []
+        for riga in reader:
+            try:
+                x.append(riga[0])
+                y.append(float(riga[1]))
+            except:
+                None
+        for i in range(0,len(x)):
+            xf=Day+" "+ x[i]
+            xhh.append(datetime.datetime.strptime(xf, "%m-%d-%y %H:%M").strftime("%d/%m/%Y %H:%M"))
+        outputname=filename[:-4]
+        p = figure(title=outputname + " "+ Day,x_range=xhh,sizing_mode="stretch_width", width=600, height=400)
+        p.line(xhh, y, legend_label=outputname + " " + Day, line_width=2, color="navy", alpha=0.5)
+        dicaxis = {i: xhh[i] for i in range(0, len(xhh))}
+        paxis = int(len(xhh) / 50)
+        select_axis_key = list(range(0, len(xhh), paxis))
+        select_axis = {k: v for (k, v) in dicaxis.items() if k in select_axis_key}
+        mapp = """ var mapping = {};
+           return mapping[tick]; """
+        p.xaxis.ticker = FixedTicker(ticks=select_axis_key)
+        p.xaxis.formatter = FuncTickFormatter(code=mapp.format(json.dumps(select_axis)))
+        p.xaxis.major_label_orientation = pi / 4
+        p.legend.location = "top_right"
+        p.legend.click_policy = "mute"
+        outputname = outputname + " " + Day + ".html"
+    # ~ logging.debug("saving: " + path+"/" + outputname)
+        output_file(path + "/" + outputname)
+
+        save(p)
+		
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -168,8 +202,8 @@ if __name__ == '__main__':
         startTime=Path(startTime).stem #estrapolo solo il nome della cartella per capire di che giorno stiamo parlando
         startTime=startTime[0:8] #estraggo solo il giorno
         # ~ print("Stampo startTime "+ startTime)
-        startTime=startTime.replace("_","-")
-        startTime=datetime.datetime.strptime( startTime, "%m-%d-%y").timestamp() #converto la data in timeseries
+        Day=startTime.replace("_","-")
+        startTime=datetime.datetime.strptime( Day, "%m-%d-%y").timestamp() #converto la data in timeseries
         # ~ print("Stampo startTime "+ str(startTime))
         # entro nelle singole cartelle di output
         os.chdir("output")
@@ -204,3 +238,8 @@ if __name__ == '__main__':
 
         save(p)                    
     os.chdir(outputpath)
+    print("Sto in: "+ os.getcwd())
+    for filename in glob.glob("*.csv"):
+        # ~ print("Nome file: "+filename)
+        # ~ logging.debug("processing " + "/" + filename)
+        OpenCsvAndCreateConsAndProdGraph(filename,os.getcwd(),Day)
